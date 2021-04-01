@@ -240,6 +240,8 @@ echo.
 echo  :: Setup Windows Explorer View
 timeout /t 2 /nobreak
 REG ADD "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v LaunchTo /t REG_DWORD /d 1 /f > NUL 2>&1
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f > NUL 2>&1
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f > NUL 2>&1
 REG DELETE "HKEY_CLASSES_ROOT\CABFolder\CLSID" /f > NUL 2>&1
 REG DELETE "HKEY_CLASSES_ROOT\SystemFileAssociations\.cab\CLSID" /f > NUL 2>&1
 REG DELETE "HKEY_CLASSES_ROOT\CompressedFolder\CLSID" /f > NUL 2>&1
@@ -251,6 +253,12 @@ REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\
 
 :: Set Time to UTC
 RED ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\TimeZoneInformation" /v RealTimeIsUniversal /t REG_DWORD /d 1 /f > NUL 2>&1
+
+::Disable Users On Login Screen
+reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v dontdisplaylastusername /t REG_DWORD /d 1 /f > NUL 2>&1
+
+::Disable The Lock Screen
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v NoLockScreen /t REG_DWORD /d 1 /f > NUL 2>&1
 
 :: Removing AppXPackages, the ModernUI Apps, including Cortana
 cls
@@ -288,6 +296,34 @@ PowerShell -Command "Get-AppxPackage *ConnectivityStore* | Remove-AppxPackage"
 PowerShell -Command "Get-AppxPackage *Microsoft.Messaging* | Remove-AppxPackage"
 PowerShell -Command "Get-AppxPackage *ContentDeliveryManager* | Remove-AppxPackage"
 PowerShell -Command "Get-AppxPackage *Microsoft.WindowsStore* | Remove-AppxPackage"
+
+:: Disabling One Drive
+cls
+echo.
+echo  :: Uninstalling OneDrive
+timeout /t 2 /nobreak > NUL
+
+set x64="%SYSTEMROOT%\SysWOW64\OneDriveSetup.exe"
+ 
+taskkill /f /im OneDrive.exe > NUL 2>&1
+ping 127.0.0.1 -n 5 > NUL 2>&1
+ 
+if exist %x64% (
+%x64% /uninstall
+) else (
+echo "OneDriveSetup.exe installer not found, skipping."
+)
+ping 127.0.0.1 -n 8 > NUL 2>&1
+
+rd "%USERPROFILE%\OneDrive" /Q /S > NUL 2>&1
+rd "C:\OneDriveTemp" /Q /S > NUL 2>&1
+rd "%LOCALAPPDATA%\Microsoft\OneDrive" /Q /S > NUL 2>&1
+rd "%PROGRAMDATA%\Microsoft OneDrive" /Q /S > NUL 2>&1
+
+echo.
+echo Removing OneDrive from the Explorer Side Panel.
+reg delete "HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > NUL 2>&1
+reg delete "HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > NUL 2>&1
 
 :: Editing Hosts File, placebo
 cls
